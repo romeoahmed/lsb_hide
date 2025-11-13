@@ -3,8 +3,9 @@ use std::path::PathBuf;
 
 /// 一款基于 LSB (最低有效位) 隐写术的命令行工具，用于在 BMP 图像中隐藏或恢复文本。
 #[derive(Parser, Debug)]
-#[command(version, 
-    about, 
+#[command(
+    version,
+    about,
     long_about = "A command-line utility for hiding and recovering secret messages within \nBMP image files using the Least Significant Bit (LSB) steganography technique. "
 )]
 pub struct Cli {
