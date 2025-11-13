@@ -1,0 +1,103 @@
+name: Rust CI & Release
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  release:
+    types: [ created ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # 基础的 CI 任务 (可用于 pull_request)
+  test_and_build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install latest stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build (Release mode)
+        # 使用 --release 构建，确保测试是针对优化的代码
+        run: cargo build --verbose --release
+      - name: Run tests
+        run: cargo test --verbose
+
+  # 🚀 发布任务：仅在创建 Release Tag 时运行
+  release_build:
+    name: Build & Release for ${{ matrix.target }}
+    # 仅在 'release: types: [created]' 事件发生时运行
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [test_and_build] # 确保在发布前通过测试
+
+    strategy:
+      matrix:
+        # 定义需要交叉编译的目标平台
+        target: 
+          - x86_64-unknown-linux-gnu    # Linux (使用 glibc)
+          - x86_64-pc-windows-msvc      # Windows (.exe)
+          - x86_64-apple-darwin         # macOS
+        
+        include:
+          # 为每个目标定义打包后的文件名后缀
+          - target: x86_64-unknown-linux-gnu
+            bin_suffix: ""
+            asset_name: linux-x64
+          - target: x86_64-pc-windows-msvc
+            bin_suffix: ".exe"
+            asset_name: windows-x64
+          - target: x86_64-apple-darwin
+            bin_suffix: ""
+            asset_name: macos-x64
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # 3. 使用 Cross 编译 Action 来处理交叉编译
+      - name: Cross Build
+        uses: houseabsolute/actions-rust-cross@v1
+        with:
+          target: ${{ matrix.target }}
+          toolchain: stable
+          args: --release --locked
+
+      # 4. 定义可执行文件的路径和名称
+      - name: Set Binary Path and Name
+        id: vars
+        shell: bash
+        run: |
+          BIN_NAME="lsb_hide"
+          echo "bin_path=target/${{ matrix.target }}/release/${BIN_NAME}${{ matrix.bin_suffix }}" >> $GITHUB_OUTPUT
+          echo "asset_name=${BIN_NAME}-${{ github.ref_name }}-${{ matrix.asset_name }}" >> $GITHUB_OUTPUT
+      
+      # 5. 将二进制文件压缩打包
+      - name: Compress Binary
+        run: |
+          mkdir staging
+          # 复制二进制文件到临时目录
+          cp ${{ steps.vars.outputs.bin_path }} staging/
+          
+          # 根据平台选择压缩格式
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            # Windows 使用 .zip
+            zip -j ${{ steps.vars.outputs.asset_name }}.zip staging/*
+            echo "archive_path=${{ steps.vars.outputs.asset_name }}.zip" >> $GITHUB_ENV
+          else
+            # Linux/macOS 使用 .tar.gz
+            tar -czf ${{ steps.vars.outputs.asset_name }}.tar.gz -C staging .
+            echo "archive_path=${{ steps.vars.outputs.asset_name }}.tar.gz" >> $GITHUB_ENV
+          fi
+
+      # 6. 使用 softprops/action-gh-release 上传资产
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          # 使用 ${{ github.ref_name }} 作为 Tag 名
+          tag_name: ${{ github.ref_name }}
+          files: ${{ env.archive_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
