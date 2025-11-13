@@ -73,8 +73,8 @@ jobs:
         run: |
           mkdir staging
           cp ${{ steps.vars.outputs.bin_path }} staging/
-          tar -czf ${{ steps.vars.outputs.asset_name }}.tar.gz -C staging .
-          echo "archive_path=${{ steps.vars.outputs.asset_name }}.tar.gz" >> $GITHUB_ENV
+          tar -c -C staging . | zstd -19 -o ${{ steps.vars.outputs.asset_name }}.tar.zst
+          echo "archive_path=${{ steps.vars.outputs.asset_name }}.tar.zst" >> $GITHUB_ENV
 
       - name: Compress Binary (Windows)
         if: matrix.os == 'windows'
