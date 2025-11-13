@@ -101,16 +101,20 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
         )
     })?;
 
-    let mut text: Vec<u8> = vec![0; text_len as usize];
-
-    for i in 0..(text_len as usize) {
-        let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
-
-        let value = recover(&picture, offset, BYTES_PER_CHAR)
-                    .with_context(|| format!("An error occurred while recovering the current index character and offset: ({}, {})", i.to_string().red().bold(), offset.to_string().red().bold()))?;
-
-        text[i] = value as u8;
-    }
+    let text: Vec<u8> = (0..text_len as usize)
+        .map(|i| {
+            let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
+            recover(&picture, offset, BYTES_PER_CHAR)
+                .map(|value| value as u8)
+                .with_context(|| {
+                    format!(
+                        "An error occurred while recovering character at index {} (offset {})",
+                        i.to_string().red().bold(),
+                        offset.to_string().red().bold()
+                    )
+                })
+        })
+        .collect::<Result<Vec<u8>>>()?;
 
     fs::write(&args.text, text).with_context(|| {
         format!(
