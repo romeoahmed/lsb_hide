@@ -4,7 +4,7 @@ pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> Result
     if dix.checked_add(size).map_or(true, |end| end > pix.len()) {
         return Err(io::Error::new(
             ErrorKind::InvalidInput,
-            "The steganographic region extends beyond the image data boundary.",
+            "Steganography region out of bounds.",
         ));
     }
 
@@ -22,7 +22,7 @@ pub fn recover(pix: &[u8], dix: usize, size: usize) -> Result<u64, io::Error> {
     if dix.checked_add(size).map_or(true, |end| end > pix.len()) {
         return Err(io::Error::new(
             ErrorKind::InvalidInput,
-            "The extraction area exceeds the image data boundary.",
+            "Extraction area out of bounds.",
         ));
     }
 
@@ -30,7 +30,7 @@ pub fn recover(pix: &[u8], dix: usize, size: usize) -> Result<u64, io::Error> {
     if size > 32 {
         return Err(io::Error::new(
             ErrorKind::InvalidInput,
-            "Attempted to extract more than 64 bits.",
+            "Extraction size limit exceeded (max 32 bytes for a u64 value).",
         ));
     }
 
