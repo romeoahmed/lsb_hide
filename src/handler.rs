@@ -5,6 +5,14 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use std::fs;
 
+/// 处理 'Hide' 命令的执行逻辑。
+///
+/// 负责读取图像和文本文件、检查隐写空间是否足够、调用隐写核心函数隐藏长度和字符，
+/// 最后将结果写入目标图像文件。
+///
+/// # Arguments
+///
+/// * `args` - 包含输入/输出路径的 `HideArgs` 结构体。
 pub fn handle_hide(args: HideArgs) -> Result<()> {
     let mut picture = fs::read(&args.image).with_context(|| {
         format!(
@@ -70,6 +78,14 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
     Ok(())
 }
 
+/// 处理 'Recover' 命令的执行逻辑。
+///
+/// 负责读取经过隐写的图像文件、调用恢复核心函数获取文本长度和每个字符，
+/// 最后将恢复的文本内容写入目标文本文件。
+///
+/// # Arguments
+///
+/// * `args` - 包含输入/输出路径的 `RecoverArgs` 结构体。
 pub fn handle_recover(args: RecoverArgs) -> Result<()> {
     let picture = fs::read(&args.image).with_context(|| {
         format!(

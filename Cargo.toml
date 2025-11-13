@@ -2,7 +2,7 @@
 name = "lsb_hide"
 version = "0.1.0"
 edition = "2024"
-description = "LSB hide and recover program for BMP image."
+description = "LSB Steganography Tool for BMP Images"
 
 [dependencies]
 anyhow = "1.0.100"
