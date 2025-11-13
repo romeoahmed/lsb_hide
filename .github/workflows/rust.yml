@@ -4,9 +4,12 @@ on:
   push:
     branches: [ "main" ]
     tags:
-      - 'v*'  # 监听版本 tag
+      - 'v*'
   pull_request:
     branches: [ "main" ]
+
+permissions:
+  contents: write  # 允许创建 Release 和上传资产
 
 env:
   CARGO_TERM_COLOR: always
@@ -14,9 +17,6 @@ env:
 jobs:
   test_and_build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      
     steps:
       - uses: actions/checkout@v5
       - name: Install latest stable Rust
