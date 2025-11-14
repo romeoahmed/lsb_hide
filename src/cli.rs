@@ -1,3 +1,8 @@
+//! # 命令行接口模块
+//!
+//! 使用 `clap` 定义了程序的命令行结构，包括子命令和参数。
+//! 所有用户通过命令行与程序交互的入口点都在此模块中定义。
+
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -6,7 +11,7 @@ use std::path::PathBuf;
 #[command(
     version,
     about,
-    long_about = "A command-line utility for hiding and recovering secret messages within \nBMP image files using the Least Significant Bit (LSB) steganography technique. "
+    long_about = "一款基于 LSB (最低有效位) 隐写术的命令行工具，用于在 BMP 图像中隐藏或恢复文本。"
 )]
 pub struct Cli {
     #[command(subcommand)]

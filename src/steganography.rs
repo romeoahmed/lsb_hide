@@ -1,3 +1,8 @@
+//! # 核心隐写算法模块
+//!
+//! 提供了 `modify` 和 `recover` 两个核心函数，用于在字节切片中
+//! 实现基于 LSB (最低有效位) 的数据隐藏和恢复。
+
 use crate::constants::{DATA_MASK, LSB_MASK};
 use std::io::{self, ErrorKind};
 
@@ -16,7 +21,8 @@ use std::io::{self, ErrorKind};
 ///
 /// # Errors
 ///
-/// 如果隐写区域 `dix` 到 `dix + size` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
+/// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误。
+/// * 如果计算出的隐写区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
 pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> Result<(), io::Error> {
     let end = dix.checked_add(size).ok_or_else(|| {
         io::Error::new(
@@ -57,8 +63,9 @@ pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> Result
 ///
 /// # Errors
 ///
-/// * 如果恢复区域 `dix` 到 `dix + size` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
-/// * 如果 `size` 大于 32 字节，由于 u64 只有 64 bits (32 bytes * 2 bits/byte)，将返回 `ErrorKind::InvalidInput` 错误。
+/// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误。
+/// * 如果计算出的恢复区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
+/// * 如果 `size` 大于 32，由于 u64 只有 64 bits (32 bytes * 2 bits/byte)，将返回 `ErrorKind::InvalidInput` 错误。
 pub fn recover(pix: &[u8], dix: usize, size: usize) -> Result<u64, io::Error> {
     let end = dix.checked_add(size).ok_or_else(|| {
         io::Error::new(

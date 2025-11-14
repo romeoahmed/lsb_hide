@@ -1,3 +1,8 @@
+//! # 命令处理逻辑模块
+//!
+//! 包含处理 `hide` 和 `recover` 子命令的高级业务逻辑。
+//! 本模块负责协调文件 I/O、调用核心隐写算法以及向用户报告结果。
+
 use crate::cli::{HideArgs, RecoverArgs};
 use crate::constants::{BMP_HEADER_SIZE, BYTES_PER_CHAR, LENGTH_HIDING_BYTES};
 use crate::steganography::{modify, recover};
@@ -13,6 +18,14 @@ use std::fs;
 /// # Arguments
 ///
 /// * `args` - 包含输入/输出路径的 `HideArgs` 结构体。
+/// 
+/// # Errors
+///
+/// 如果发生以下任一情况，将返回错误：
+/// * 无法读取输入的图像或文本文件。
+/// * 图像文件没有足够的空间来隐藏文本。
+/// * 核心隐写函数 (`modify`) 在执行过程中失败。
+/// * 无法写入到目标图像文件。
 pub fn handle_hide(args: HideArgs) -> Result<()> {
     let mut picture = fs::read(&args.image).with_context(|| {
         format!(
@@ -82,6 +95,13 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
 /// # Arguments
 ///
 /// * `args` - 包含输入/输出路径的 `RecoverArgs` 结构体。
+/// 
+/// # Errors
+///
+/// 如果发生以下任一情况，将返回错误：
+/// * 无法读取输入的图像文件。
+/// * 核心恢复函数 (`recover`) 在执行过程中失败。
+/// * 无法写入到目标文本文件。
 pub fn handle_recover(args: RecoverArgs) -> Result<()> {
     let picture = fs::read(&args.image).with_context(|| {
         format!(
