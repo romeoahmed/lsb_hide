@@ -101,13 +101,8 @@ mod tests {
 
         // 2. 隐藏数据
         // 隐藏文本长度
-        modify(
-            text_len,
-            &mut picture,
-            BMP_HEADER_SIZE,
-            LENGTH_HIDING_BYTES,
-        )
-        .expect("Failed to hide text length.");
+        modify(text_len, &mut picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES)
+            .expect("Failed to hide text length.");
 
         // 逐字节隐藏文本内容
         for (i, &char_byte) in text_bytes.iter().enumerate() {
@@ -122,7 +117,10 @@ mod tests {
             .expect("Failed to recover text length.");
 
         // 断言长度一致
-        assert_eq!(text_len, recovered_len, "Recovered length should match original length.");
+        assert_eq!(
+            text_len, recovered_len,
+            "Recovered length should match original length."
+        );
 
         // 逐字节恢复文本内容
         let recovered_bytes: Vec<u8> = (0..recovered_len as usize)
@@ -136,7 +134,11 @@ mod tests {
 
         // 4. 断言结果
         // 断言恢复的文本内容与原始文本完全一致
-        assert_eq!(text_bytes, recovered_bytes.as_slice(), "Recovered text should match original text.");
+        assert_eq!(
+            text_bytes,
+            recovered_bytes.as_slice(),
+            "Recovered text should match original text."
+        );
     }
 
     /// 测试 recover 函数在数据不足时能否正确返回错误
@@ -147,6 +149,9 @@ mod tests {
         let result = recover(&picture, 0, 8);
 
         // 断言结果是 Err
-        assert!(result.is_err(), "Recover should fail when there is not enough data.");
+        assert!(
+            result.is_err(),
+            "Recover should fail when there is not enough data."
+        );
     }
 }
