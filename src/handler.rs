@@ -33,13 +33,12 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
         .len()
         .saturating_sub(BMP_HEADER_SIZE + LENGTH_HIDING_BYTES);
 
-    if available_space < required_space {
-        anyhow::bail!(
-            "The text file ({}) is too long, and there is insufficient image space (only {}).",
-            required_space.to_string().red().bold(),
-            available_space.to_string().red().bold()
-        );
-    }
+    anyhow::ensure!(
+        available_space >= required_space,
+        "Not enough space in the image to hide the text. Required: {}, Available: {}",
+        required_space.to_string().red().bold(),
+        available_space.to_string().green().bold()
+    );
 
     let text_len = text.len() as u64;
 
@@ -50,18 +49,15 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
         )
     })?;
 
-    for (i, &char_byte) in text.iter().enumerate() {
+    text.iter().enumerate().try_for_each(|(i, &char_byte)| {
         let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
-
-        let char_u64 = char_byte as u64;
-
-        modify(char_u64, &mut picture, offset, BYTES_PER_CHAR).with_context(|| {
+        modify(char_byte as u64, &mut picture, offset, BYTES_PER_CHAR).with_context(|| {
             format!(
                 "An error occurred while hiding the current index character: {}",
                 i.to_string().red().bold()
             )
-        })?;
-    }
+        })
+    })?;
 
     fs::write(&args.dest, picture).with_context(|| {
         format!(

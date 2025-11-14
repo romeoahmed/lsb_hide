@@ -1,3 +1,4 @@
+use crate::constants::{DATA_MASK, LSB_MASK};
 use std::io::{self, ErrorKind};
 
 /// 隐藏一个 64 位值 (`value`) 到像素数组 (`pix`) 的指定区域。
@@ -17,17 +18,22 @@ use std::io::{self, ErrorKind};
 ///
 /// 如果隐写区域 `dix` 到 `dix + size` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
 pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> Result<(), io::Error> {
-    if dix.checked_add(size).map_or(true, |end| end > pix.len()) {
-        return Err(io::Error::new(
+    let end = dix.checked_add(size).ok_or_else(|| {
+        io::Error::new(
+            ErrorKind::InvalidInput,
+            "Integer overflow when calculating end index.",
+        )
+    })?;
+
+    let sub_pix = pix.get_mut(dix..end).ok_or_else(|| {
+        io::Error::new(
             ErrorKind::InvalidInput,
             "Steganography region out of bounds.",
-        ));
-    }
-
-    let sub_pix = &mut pix[dix..(dix + size)];
+        )
+    })?;
 
     for byte in sub_pix.iter_mut() {
-        *byte = ((value & 0x3) as u8) | (*byte & 0xFC);
+        *byte = ((value & (LSB_MASK as u64)) as u8) | (*byte & DATA_MASK);
         value >>= 2;
     }
 
@@ -54,14 +60,17 @@ pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> Result
 /// * 如果恢复区域 `dix` 到 `dix + size` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
 /// * 如果 `size` 大于 32 字节，由于 u64 只有 64 bits (32 bytes * 2 bits/byte)，将返回 `ErrorKind::InvalidInput` 错误。
 pub fn recover(pix: &[u8], dix: usize, size: usize) -> Result<u64, io::Error> {
-    if dix.checked_add(size).map_or(true, |end| end > pix.len()) {
-        return Err(io::Error::new(
+    let end = dix.checked_add(size).ok_or_else(|| {
+        io::Error::new(
             ErrorKind::InvalidInput,
-            "Extraction area out of bounds.",
-        ));
-    }
+            "Integer overflow when calculating end index.",
+        )
+    })?;
 
-    let mut result: u64 = 0;
+    let sub_pix = pix
+        .get(dix..end)
+        .ok_or_else(|| io::Error::new(ErrorKind::InvalidInput, "Extraction area out of bounds."))?;
+
     if size > 32 {
         return Err(io::Error::new(
             ErrorKind::InvalidInput,
@@ -69,11 +78,9 @@ pub fn recover(pix: &[u8], dix: usize, size: usize) -> Result<u64, io::Error> {
         ));
     }
 
-    let sub_pix = &pix[dix..(dix + size)];
-
-    for (i, &byte) in sub_pix.iter().enumerate() {
-        result |= ((byte & 0x3) as u64) << (i * 2);
-    }
+    let result = sub_pix.iter().enumerate().fold(0u64, |acc, (i, &byte)| {
+        acc | ((byte & LSB_MASK) as u64) << (i * 2)
+    });
 
     Ok(result)
 }
