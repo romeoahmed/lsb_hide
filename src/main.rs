@@ -12,8 +12,10 @@ use cli::{Cli, Commands};
 /// 负责解析命令行参数，并根据指定的子命令（`hide` 或 `recover`）
 /// 将执行分派到相应的处理函数。
 fn main() -> Result<()> {
+    // 解析命令行参数
     let cli = Cli::parse();
 
+    // 根据子命令调用相应的处理函数
     match cli.command {
         Commands::Hide(args) => handler::handle_hide(args),
         Commands::Recover(args) => handler::handle_recover(args),

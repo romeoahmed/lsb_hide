@@ -27,6 +27,7 @@ use std::fs;
 /// * 核心隐写函数 (`modify`) 在执行过程中失败。
 /// * 无法写入到目标图像文件。
 pub fn handle_hide(args: HideArgs) -> Result<()> {
+    // 读取源图像和待隐藏的文本文件
     let mut picture = fs::read(&args.image).with_context(|| {
         format!(
             "Unable to read image file: {}",
@@ -41,6 +42,7 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
         )
     })?;
 
+    // 检查图像是否有足够的空间来隐藏文本
     let required_space = text.len() * BYTES_PER_CHAR;
     let available_space = picture
         .len()
@@ -53,12 +55,13 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
         available_space.to_string().green().bold()
     );
 
+    // 隐藏文本长度
     let text_len = text.len() as u64;
-
     modify(text_len, &mut picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES).with_context(|| {
         "Failed to hide the message length in the image. \nThe image file may be corrupt or write-protected."
     })?;
 
+    // 逐字节隐藏文本内容
     text.iter().enumerate().try_for_each(|(i, &char_byte)| {
         let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
         modify(char_byte as u64, &mut picture, offset, BYTES_PER_CHAR).with_context(|| {
@@ -113,6 +116,7 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
         )
     })?;
 
+    // 恢复隐藏文本的长度
     let text_len = recover(&picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES).with_context(|| {
         format!(
             "Failed to recover message length from '{}'. \nThe image may not contain a hidden message or is corrupted.",
@@ -120,6 +124,7 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
         )
     })?;
 
+    // 根据恢复的长度，逐字节恢复文本内容
     let text: Vec<u8> = (0..text_len as usize)
         .map(|i| {
             let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
