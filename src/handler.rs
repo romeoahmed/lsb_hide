@@ -18,7 +18,7 @@ use std::fs;
 /// # Arguments
 ///
 /// * `args` - 包含输入/输出路径的 `HideArgs` 结构体。
-/// 
+///
 /// # Errors
 ///
 /// 如果发生以下任一情况，将返回错误：
@@ -48,7 +48,7 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
 
     anyhow::ensure!(
         available_space >= required_space,
-        "Not enough space in the image to hide the text. Required: {}, Available: {}",
+        "Not enough space in the image to hide the text. \nRequired: {}, Available: {}",
         required_space.to_string().red().bold(),
         available_space.to_string().green().bold()
     );
@@ -56,18 +56,21 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
     let text_len = text.len() as u64;
 
     modify(text_len, &mut picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES).with_context(|| {
-        format!(
-            "An error occurred while hiding the text length: {}",
-            text_len.to_string().red().bold()
-        )
+        "Failed to hide the message length in the image. \nThe image file may be corrupt or write-protected."
     })?;
 
     text.iter().enumerate().try_for_each(|(i, &char_byte)| {
         let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
         modify(char_byte as u64, &mut picture, offset, BYTES_PER_CHAR).with_context(|| {
+            let char_info = std::str::from_utf8(&[char_byte])
+                .map(|s| format!("{}", s))
+                .unwrap_or_else(|_| {
+                    format!("byte value {}", char_byte)
+                });
             format!(
-                "An error occurred while hiding the current index character: {}",
-                i.to_string().red().bold()
+                "Failed to hide character {} (at index {}). \nThe image might not have enough capacity or is corrupted.",
+                char_info.red().bold(),
+                i.to_string().green()
             )
         })
     })?;
@@ -95,7 +98,7 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
 /// # Arguments
 ///
 /// * `args` - 包含输入/输出路径的 `RecoverArgs` 结构体。
-/// 
+///
 /// # Errors
 ///
 /// 如果发生以下任一情况，将返回错误：
@@ -112,7 +115,7 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
 
     let text_len = recover(&picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES).with_context(|| {
         format!(
-            "An error occurred while recovering the text length from image: {}",
+            "Failed to recover message length from '{}'. \nThe image may not contain a hidden message or is corrupted.",
             args.image.to_string_lossy().red().bold()
         )
     })?;
@@ -124,7 +127,7 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
                 .map(|value| value as u8)
                 .with_context(|| {
                     format!(
-                        "An error occurred while recovering character at index {} (offset {})",
+                        "Failed to recover character at index {}. \nThe data at offset {} appears to be corrupted or invalid.",
                         i.to_string().red().bold(),
                         offset.to_string().red().bold()
                     )
