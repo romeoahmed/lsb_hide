@@ -96,8 +96,8 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
 
     let text_len = recover(&picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES).with_context(|| {
         format!(
-            "An error occurred while recovering the text length: {}",
-            args.text.to_string_lossy().red().bold()
+            "An error occurred while recovering the text length from image: {}",
+            args.image.to_string_lossy().red().bold()
         )
     })?;
 
