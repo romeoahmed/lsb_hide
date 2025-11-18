@@ -1,8 +1,12 @@
 [package]
+authors = ["Romeo Ahmed <ahmedorqwn@gmail.com>"]
 name = "lsb_hide"
 version = "1.0.3"
 edition = "2024"
 description = "LSB Steganography Tool for BMP Images"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/romeoahmed/lsb_hide"
 
 [dependencies]
 anyhow = "1.0.100"
