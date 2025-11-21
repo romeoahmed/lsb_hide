@@ -8,7 +8,7 @@ use crate::constants::{BYTES_PER_CHAR, LENGTH_HIDING_BYTES};
 use crate::steganography::{modify, recover};
 use anyhow::{Context, Result};
 use colored::Colorize;
-use image::{GenericImageView, ImageBuffer, Rgba};
+use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb, Rgba};
 use std::fs;
 
 /// 处理 'Hide' 命令的执行逻辑。
@@ -37,7 +37,12 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
     })?;
 
     let (width, height) = img.dimensions();
-    let mut picture_bytes = img.into_rgba8().into_raw();
+    
+    // 将图像转换为字节流，判断并记录原始颜色格式（RGB/RGBA）
+    let (mut picture_bytes, is_rgba) = match img {
+        DynamicImage::ImageRgba8(rgba) => (rgba.into_raw(), true),
+        _ => (img.into_rgb8().into_raw(), false),
+    };
 
     let text = fs::read(&args.text).with_context(|| {
         format!(
@@ -59,9 +64,9 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
 
     // 隐藏文本长度
     let text_len = text.len() as u64;
-    modify(text_len, &mut picture_bytes, 0, LENGTH_HIDING_BYTES).with_context(|| {
+    modify(text_len, &mut picture_bytes, 0, LENGTH_HIDING_BYTES).context(
         "Failed to hide the message length in the image. \nThe image file may be corrupt or write-protected."
-    })?;
+    )?;
 
     // 逐字节隐藏文本内容
     text.iter().enumerate().try_for_each(|(i, &char_byte)| {
@@ -80,9 +85,16 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
         })
     })?;
 
-    // 从修改后的字节创建 ImageBuffer 并保存
-    let output_img = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(width, height, picture_bytes)
-        .with_context(|| "Failed to create image buffer from modified bytes.")?;
+    // 根据原始颜色格式（RGB/RGBA），从修改后的字节创建 DynamicImage
+    let output_img = if is_rgba {
+        ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(width, height, picture_bytes)
+            .context("Failed to create RGBA image buffer from modified bytes.")
+            .map(DynamicImage::ImageRgba8)
+    } else {
+        ImageBuffer::<Rgb<u8>, Vec<u8>>::from_raw(width, height, picture_bytes)
+            .context("Failed to create RGB image buffer from modified bytes.")
+            .map(DynamicImage::ImageRgb8)
+    }?;
 
     output_img.save(&args.dest).with_context(|| {
         format!(
@@ -123,7 +135,11 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
         )
     })?;
 
-    let picture_bytes = img.into_rgba8().into_raw();
+    // 根据原始颜色格式（RGB/RGBA），将图像转换为字节流
+    let picture_bytes = match img {
+        DynamicImage::ImageRgba8(rgba) => rgba.into_raw(),
+        _ => img.into_rgb8().into_raw(),
+    };
 
     // 恢复隐藏文本的长度
     let text_len = recover(&picture_bytes, 0, LENGTH_HIDING_BYTES).with_context(|| {
