@@ -576,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "lsb_hide"
-version = "1.0.5"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "clap",
