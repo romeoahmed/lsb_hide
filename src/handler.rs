@@ -28,13 +28,7 @@ use std::fs;
 /// * 核心隐写函数 (`modify`) 在执行过程中失败。
 /// * 无法写入到目标图像文件。
 pub fn handle_hide(args: HideArgs) -> Result<()> {
-    // 读取源图像和待隐藏的文本文件
-    // let mut picture = fs::read(&args.image).with_context(|| {
-    //     format!(
-    //         "Unable to read image file: {}",
-    //         args.image.to_string_lossy().red().bold()
-    //     )
-    // })?;
+    // 读取源图像
     let img = image::open(&args.image).with_context(|| {
         format!(
             "Unable to read image file: {}",
@@ -86,13 +80,7 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
         })
     })?;
 
-    // fs::write(&args.dest, picture).with_context(|| {
-    //     format!(
-    //         "Unable to write to target image file: {}",
-    //         args.dest.to_string_lossy().red().bold()
-    //     )
-    // })?;
-
+    // 从修改后的字节创建 ImageBuffer 并保存
     let output_img = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(width, height, picture_bytes)
         .with_context(|| "Failed to create image buffer from modified bytes.")?;
 
@@ -127,12 +115,7 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
 /// * 核心恢复函数 (`recover`) 在执行过程中失败。
 /// * 无法写入到目标文本文件。
 pub fn handle_recover(args: RecoverArgs) -> Result<()> {
-    // let picture = fs::read(&args.image).with_context(|| {
-    //     format!(
-    //         "Unable to read image file: {}",
-    //         args.image.to_string_lossy().red().bold()
-    //     )
-    // })?;
+    // 读取图像文件
     let img = image::open(&args.image).with_context(|| {
         format!(
             "Unable to read image file: {}",

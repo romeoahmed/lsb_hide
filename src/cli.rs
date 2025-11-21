@@ -6,12 +6,12 @@
 use clap::Parser;
 use std::path::PathBuf;
 
-/// 一款基于 LSB (最低有效位) 隐写术的命令行工具，用于在 BMP 图像中隐藏或恢复文本。
+/// 一款基于 LSB (最低有效位) 隐写术的命令行工具，用于在无损格式图像 (如 PNG, BMP) 中隐藏或恢复文本。
 #[derive(Parser, Debug)]
 #[command(
     version,
     about,
-    long_about = "一款基于 LSB (最低有效位) 隐写术的命令行工具，用于在 BMP 图像中隐藏或恢复文本。"
+    long_about = "一款基于 LSB (最低有效位) 隐写术的命令行工具，用于在无损格式图像 (如 PNG, BMP) 中隐藏或恢复文本。"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -21,17 +21,17 @@ pub struct Cli {
 /// 可用的子命令：hide (隐藏) 和 recover (恢复)。
 #[derive(Parser, Debug)]
 pub enum Commands {
-    /// 在 BMP 图像中隐藏文本文件内容。
+    /// 在无损格式图像 (如 PNG, BMP) 中隐藏文本文件内容。
     Hide(HideArgs),
 
-    /// 从经过隐写的 BMP 图像中恢复隐藏的文本。
+    /// 从经过隐写的图像中恢复隐藏的文本。
     Recover(RecoverArgs),
 }
 
 /// 'hide' 命令所需的参数。
 #[derive(Parser, Debug)]
 pub struct HideArgs {
-    /// 用于隐写的输入 BMP 文件路径。
+    /// 用于隐写的输入图像文件路径 (如 PNG, BMP)。
     #[arg(short, long)]
     pub image: PathBuf,
 
@@ -47,7 +47,7 @@ pub struct HideArgs {
 /// 'recover' 命令所需的参数。
 #[derive(Parser, Debug)]
 pub struct RecoverArgs {
-    /// 已隐藏文本数据的 BMP 文件路径。
+    /// 已隐藏文本数据的图像文件路径。
     #[arg(short, long)]
     pub image: PathBuf,
 
