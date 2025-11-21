@@ -12,3 +12,4 @@ repository = "https://github.com/romeoahmed/lsb_hide"
 anyhow = "1.0.100"
 clap = { version = "4.5.53", features = ["derive"] }
 colored = "3.0.0"
+image = "0.25.9"

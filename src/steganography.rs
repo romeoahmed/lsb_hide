@@ -126,20 +126,20 @@ mod tests {
 
         // 2. 隐藏数据
         // 隐藏文本长度
-        modify(text_len, &mut picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES)
+        modify(text_len, &mut picture, 0, LENGTH_HIDING_BYTES)
             .expect("Failed to hide text length.");
 
         // 逐字节隐藏文本内容
         for (i, &char_byte) in text_bytes.iter().enumerate() {
-            let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
+            let offset = LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
             modify(char_byte as u64, &mut picture, offset, BYTES_PER_CHAR)
                 .expect("Failed to hide a character.");
         }
 
         // 3. 恢复数据
         // 恢复文本长度
-        let recovered_len = recover(&picture, BMP_HEADER_SIZE, LENGTH_HIDING_BYTES)
-            .expect("Failed to recover text length.");
+        let recovered_len =
+            recover(&picture, 0, LENGTH_HIDING_BYTES).expect("Failed to recover text length.");
 
         // 断言长度一致
         assert_eq!(
@@ -150,7 +150,7 @@ mod tests {
         // 逐字节恢复文本内容
         let recovered_bytes: Vec<u8> = (0..recovered_len as usize)
             .map(|i| {
-                let offset = BMP_HEADER_SIZE + LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
+                let offset = LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
                 recover(&picture, offset, BYTES_PER_CHAR)
                     .map(|val| val as u8)
                     .expect("Failed to recover a character.")
