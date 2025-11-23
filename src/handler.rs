@@ -23,6 +23,7 @@ use std::fs;
 /// # Errors
 ///
 /// 如果发生以下任一情况，将返回错误：
+/// * 写入路径文件已存在，且没有 `--force` 标识
 /// * 无法读取输入的图像或文本文件
 /// * 图像文件没有足够的空间来隐藏文本
 /// * 核心隐写函数 (`modify`) 在执行过程中失败
@@ -38,6 +39,13 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
         let new_filename = format!("doctored_{}", original_filename);
         original_path.with_file_name(new_filename)
     });
+
+    // 在写入前检查文件是否存在，防止意外覆盖
+    anyhow::ensure!(
+        !dest_path.exists() || args.force,
+        "Output file already exists: {}.\nUse --force to overwrite.",
+        dest_path.to_string_lossy().yellow().bold()
+    );
 
     // 读取源图像
     let img = image::open(&args.image).with_context(|| {
@@ -134,6 +142,7 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
 /// # Errors
 ///
 /// 如果发生以下任一情况，将返回错误：
+/// * 写入路径文件已存在，且没有 `--force` 标志
 /// * 无法读取输入的图像文件
 /// * 核心恢复函数 (`recover`) 在执行过程中失败
 /// * 无法写入到目标文本文件
@@ -148,6 +157,13 @@ pub fn handle_recover(args: RecoverArgs) -> anyhow::Result<()> {
         let new_filename = format!("recovered_{}.txt", original_filename);
         original_path.with_file_name(new_filename)
     });
+
+    // 在写入前检查文件是否存在，防止意外覆盖
+    anyhow::ensure!(
+        !text_path.exists() || args.force,
+        "Output file already exists: {}.\nUse --force to overwrite.",
+        text_path.to_string_lossy().yellow().bold()
+    );
 
     // 读取图像文件
     let img = image::open(&args.image).with_context(|| {

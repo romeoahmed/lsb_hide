@@ -43,6 +43,10 @@ pub struct HideArgs {
     /// [可选] 如果未提供，将默认保存到 "doctored_{原始文件名}"
     #[arg(short, long)]
     pub dest: Option<PathBuf>,
+
+    /// 强制写入到输出路径
+    #[arg(long)]
+    pub force: bool,
 }
 
 /// 'recover' 命令所需的参数
@@ -56,4 +60,8 @@ pub struct RecoverArgs {
     /// [可选] 如果未提供，将默认保存到 "recovered_{原始文件名}.txt"
     #[arg(short, long)]
     pub text: Option<PathBuf>,
+
+    /// 强制写入到输出路径
+    #[arg(long)]
+    pub force: bool,
 }

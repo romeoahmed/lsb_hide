@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use image::{ImageBuffer, Rgba};
 use lsb_hide::{
     cli::{HideArgs, RecoverArgs},
@@ -43,6 +44,7 @@ fn test_handle_hide_and_recover_integration() -> anyhow::Result<()> {
         image: original_image_path.clone(),
         text: source_text_path.clone(),
         dest: Some(hidden_image_path.clone()),
+        force: false,
     };
     handle_hide(hide_args)?;
     assert!(
@@ -54,6 +56,7 @@ fn test_handle_hide_and_recover_integration() -> anyhow::Result<()> {
     let recover_args = RecoverArgs {
         image: hidden_image_path.clone(),
         text: Some(recovered_text_path.clone()),
+        force: false
     };
     handle_recover(recover_args)?;
     assert!(
@@ -88,6 +91,7 @@ fn test_handle_hide_and_recover_with_defaults() -> anyhow::Result<()> {
         image: original_image_path.clone(),
         text: source_text_path.clone(),
         dest: None, // 关键：测试 None 的情况
+        force: false
     };
     handle_hide(hide_args)?;
 
@@ -103,6 +107,7 @@ fn test_handle_hide_and_recover_with_defaults() -> anyhow::Result<()> {
     let recover_args = RecoverArgs {
         image: expected_hidden_path, // 使用上一步生成的默认文件
         text: None,                  // 关键：测试 None 的情况
+        force: false
     };
     handle_recover(recover_args)?;
 
@@ -124,11 +129,63 @@ fn test_handle_hide_and_recover_with_defaults() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// 验证覆盖保护机制以及 `--force` 标志是否按预期工作
+#[test]
+fn test_overwrite_protection_and_force_flag() -> anyhow::Result<()> {
+    // 1. 准备环境
+    let dir = tempdir()?;
+    let image_path = dir.path().join("image.png");
+    let text_path = dir.path().join("text.txt");
+    let dest_path = dir.path().join("dest.png");
+
+    create_test_image(&image_path, 50, 50);
+    fs::write(&text_path, "some text")?;
+
+    // 2. 场景一：测试覆盖保护
+    // 先创建一个同名的目标文件，模拟“文件已存在”的场景
+    fs::write(&dest_path, "this is a dummy file to be overwritten")?;
+    assert!(dest_path.exists());
+
+    // 构建参数，不使用 --force
+    let hide_args_no_force = HideArgs {
+        image: image_path.clone(),
+        text: text_path.clone(),
+        dest: Some(dest_path.clone()),
+        force: false,
+    };
+
+    // 执行并断言操作会失败
+    let result = handle_hide(hide_args_no_force);
+    assert!(result.is_err(), "Execution should fail without --force when file exists.");
+    if let Err(e) = result {
+        assert!(e.to_string().contains("Output file already exists"));
+    }
+
+    // 3. 场景二：测试强制覆盖
+    // 构建参数，这次使用 --force
+    let hide_args_with_force = HideArgs {
+        image: image_path.clone(),
+        text: text_path.clone(),
+        dest: Some(dest_path.clone()),
+        force: true,
+    };
+
+    // 执行并断言操作会成功
+    let result = handle_hide(hide_args_with_force);
+    assert!(result.is_ok(), "Execution should succeed with --force when file exists.");
+
+    // 验证文件确实被覆盖（内容不再是 "this is a dummy file..."）
+    let dummy_content = fs::read(&dest_path)?;
+    assert_ne!(dummy_content, b"this is a dummy file to be overwritten");
+
+    Ok(())
+}
+
 /// 验证空间不足时的错误处理
 #[test]
-fn test_handle_hide_not_enough_space() {
+fn test_handle_hide_not_enough_space() -> anyhow::Result<()> {
     // 1. 准备环境
-    let dir = tempdir().unwrap();
+    let dir = tempdir()?;
     let image_path = dir.path().join("small.png");
     let text_path = dir.path().join("large.txt");
     let dest_path = dir.path().join("dest.png");
@@ -137,16 +194,21 @@ fn test_handle_hide_not_enough_space() {
     create_test_image(&image_path, 10, 10);
     // 创建一个非常大的文本
     let large_text = "a".repeat(5000);
-    fs::write(&text_path, large_text).unwrap();
+    fs::write(&text_path, large_text)?;
 
     // 2. 执行并断言错误
     let hide_args = HideArgs {
         image: image_path,
         text: text_path,
         dest: Some(dest_path),
+        force: false
     };
     let result = handle_hide(hide_args);
 
     assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains("Not enough space"));
+    if let Err(e) = result {
+        assert!(e.to_string().contains("Not enough space"));
+    }
+
+    Ok(())
 }
