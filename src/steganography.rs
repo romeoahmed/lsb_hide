@@ -24,25 +24,27 @@ use anyhow::Context;
 /// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误。
 /// * 如果计算出的隐写区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
 pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> anyhow::Result<()> {
+    // 一个 u64 只能存储 64 bits，需要 32 个像素字节 (32 * 2 bits)
+    anyhow::ensure!(
+        size <= 32,
+        "Steganography size limit exceeded (max 32 bytes for a u64 value)."
+    );
+
     // 计算恢复区域的结束索引
-    let end = dix
-        .checked_add(size)
-        .with_context(|| {
-            format!(
-                "Integer overflow when calculating end index.\ndix: {}, size: {}",
-                dix, size
-            )
-        })?;
+    let end = dix.checked_add(size).with_context(|| {
+        format!(
+            "Integer overflow when calculating end index.\ndix: {}, size: {}",
+            dix, size
+        )
+    })?;
 
     // 获取用于隐写的像素子切片
-    let sub_pix = pix
-        .get_mut(dix..end)
-        .with_context(|| {
-            format!(
-                "Steganography region out of bounds.\n dix: {}, end: {}",
-                dix, end
-            )
-        })?;
+    let sub_pix = pix.get_mut(dix..end).with_context(|| {
+        format!(
+            "Steganography region out of bounds.\n dix: {}, end: {}",
+            dix, end
+        )
+    })?;
 
     // 遍历每个像素字节，将 value 的 2 bits 写入其 LSB
     for byte in sub_pix.iter_mut() {
@@ -84,24 +86,17 @@ pub fn recover(pix: &[u8], dix: usize, size: usize) -> anyhow::Result<u64> {
     );
 
     // 计算恢复区域的结束索引
-    let end = dix
-        .checked_add(size)
-        .with_context(|| {
-            format!(
-                "Integer overflow when calculating end index.\ndix: {}, size: {}",
-                dix, size
-            )
-        })?;
+    let end = dix.checked_add(size).with_context(|| {
+        format!(
+            "Integer overflow when calculating end index.\ndix: {}, size: {}",
+            dix, size
+        )
+    })?;
 
     // 获取用于恢复的像素子切片
     let sub_pix = pix
         .get(dix..end)
-        .with_context(|| {
-            format!(
-                "Extraction area out of bounds.\ndix: {}, end: {}",
-                dix, end
-            )
-        })?;
+        .with_context(|| format!("Extraction area out of bounds.\ndix: {}, end: {}", dix, end))?;
 
     // 从每个像素字节的 LSB 中提取 2 bits，并将其组合成一个 u64 值
     let result = sub_pix.iter().enumerate().fold(0u64, |acc, (i, &byte)| {
@@ -116,6 +111,7 @@ pub fn recover(pix: &[u8], dix: usize, size: usize) -> anyhow::Result<u64> {
 mod tests {
     use super::*;
     use crate::constants::*;
+    use rand::RngCore;
 
     /// 一个完整的端到端测试，模拟隐藏和恢复过程。
     #[test]
@@ -123,10 +119,9 @@ mod tests {
         // 1. 准备测试数据
         // 模拟一个 BMP 文件的头部和足够大的数据区
         let mut picture = vec![0u8; 1024];
+
         // 填充一些伪随机数据，模拟真实的图像像素
-        for (i, byte) in picture.iter_mut().enumerate() {
-            *byte = (i % 256) as u8;
-        }
+        rand::rng().fill_bytes(&mut picture);
 
         // 模拟要隐藏的文本
         let original_text = "Hello, Steganography! 你好，隐写术！";
@@ -175,6 +170,18 @@ mod tests {
         );
     }
 
+    /// 测试 modify 函数在数据不足时能否正确返回错误
+    #[test]
+    fn test_modify_not_enough_space() {
+        let mut picture = vec![0u8; 7];
+        // 尝试在 7 字节的缓冲区中写入 8 字节的数据
+        let result = modify(123, &mut picture, 0, 8);
+        assert!(
+            result.is_err(),
+            "Modify should fail when there is not enough space."
+        );
+    }
+
     /// 测试 recover 函数在数据不足时能否正确返回错误
     #[test]
     fn test_recover_not_enough_data() {
@@ -187,5 +194,88 @@ mod tests {
             result.is_err(),
             "Recover should fail when there is not enough data."
         );
+    }
+
+    /// 测试整数溢出时，modify 函数是否会失败
+    #[test]
+    fn test_modify_integer_overflow() {
+        let mut picture = vec![0u8; 10];
+        // dix + size 会导致 usize 溢出
+        let result = modify(123, &mut picture, usize::MAX, 10);
+        assert!(
+            result.is_err(),
+            "Recover function should fail on integer overflow."
+        );
+    }
+
+    /// 测试整数溢出时，recover 函数是否会失败
+    #[test]
+    fn test_recover_integer_overflow() {
+        let picture = vec![0u8; 10];
+        // dix + size 会导致 usize 溢出
+        let result = recover(&picture, usize::MAX, 10);
+        assert!(
+            result.is_err(),
+            "Recover function should fail on integer overflow."
+        );
+    }
+
+    /// 测试当请求恢复的 size 大于 32 时，modify 函数是否会失败
+    #[test]
+    fn test_modify_size_too_large() {
+        let mut picture = vec![0u8; 64];
+        // size=33 超过了 u64 能容纳的 32 字节
+        let result = modify(123, &mut picture, 0, 33);
+        assert!(
+            result.is_err(),
+            "Modify should fail when size is greater than 32."
+        );
+    }
+
+    /// 测试当请求恢复的 size 大于 32 时，recover 函数是否会失败
+    #[test]
+    fn test_recover_size_too_large() {
+        let picture = vec![0u8; 64];
+        // size=33 超过了 u64 能容纳的 32 字节
+        let result = recover(&picture, 0, 33);
+        assert!(
+            result.is_err(),
+            "Recover should fail when size is greater than 32."
+        );
+    }
+
+    /// 测试隐藏和恢复一个空文本（长度为 0）
+    #[test]
+    fn test_hide_and_recover_empty_text() {
+        let mut picture = vec![0u8; 128];
+        let text_len = 0u64;
+
+        // 隐藏长度 0
+        modify(text_len, &mut picture, 0, LENGTH_HIDING_BYTES)
+            .expect("Failed to hide zero length.");
+
+        // 恢复长度
+        let recovered_len =
+            recover(&picture, 0, LENGTH_HIDING_BYTES).expect("Failed to recover zero length.");
+
+        assert_eq!(text_len, recovered_len, "Recovered length should be 0.");
+    }
+
+    /// 测试隐藏和恢复 u64 的最大值，以确保所有 64 位都被正确处理。
+    #[test]
+    fn test_hide_and_recover_u64_max() {
+        // 准备一个足够大的字节缓冲区。
+        let mut picture = vec![0u8; 64];
+
+        // 定义要隐藏的值为 u64 的最大可能值。
+        let value_to_hide = u64::MAX;
+
+        // 隐藏 u64::MAX
+        modify(value_to_hide, &mut picture, 0, 32).expect("Failed to hide u64::MAX");
+
+        // 恢复 u64::MAX
+        let recovered_value = recover(&picture, 0, 32).expect("Failed to recover u64::MAX");
+
+        assert_eq!(value_to_hide, recovered_value);
     }
 }
