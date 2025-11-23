@@ -1,28 +1,28 @@
 //! # 核心隐写算法模块
 //!
 //! 提供了 `modify` 和 `recover` 两个核心函数，用于在字节切片中
-//! 实现基于 LSB (最低有效位) 的数据隐藏和恢复。
+//! 实现基于 LSB (最低有效位) 的数据隐藏和恢复
 
 use crate::constants::{DATA_MASK, LSB_MASK};
 use anyhow::Context;
 
-/// 隐藏一个 64 位值 (`value`) 到像素数组 (`pix`) 的指定区域。
+/// 隐藏一个 64 位值 (`value`) 到像素数组 (`pix`) 的指定区域
 ///
-/// 隐写采用 LSB (最低有效位) 机制，使用像素字节的最低两位 (`& 0x3`) 来存储数据。
-/// 每个像素字节可以存储 2 bits 的数据，因此 `size` 字节可存储 `size * 2` bits。
-/// 数据是按小端序 (Little-Endian) 方式写入的：`value` 的最低位写入 `sub_pix` 的第一个字节。
+/// 隐写采用 LSB (最低有效位) 机制，使用像素字节的最低两位 (`& 0x3`) 来存储数据
+/// 每个像素字节可以存储 2 bits 的数据，因此 `size` 字节可存储 `size * 2` bits
+/// 数据是按小端序 (Little-Endian) 方式写入的：`value` 的最低位写入 `sub_pix` 的第一个字节
 ///
 /// # Arguments
 ///
-/// * `value` - 要隐藏的 64 位无符号整数。
-/// * `pix` - 包含图像像素数据的可变字节切片。
-/// * `dix` - 数据开始隐写的索引偏移量 (Data Index)，应跳过 BMP 头。
-/// * `size` - 用于隐写的字节数 (像素字节数)。
+/// * `value` - 要隐藏的 64 位无符号整数
+/// * `pix` - 包含图像像素数据的可变字节切片
+/// * `dix` - 数据开始隐写的索引偏移量 (Data Index)
+/// * `size` - 用于隐写的字节数 (像素字节数)
 ///
 /// # Errors
 ///
-/// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误。
-/// * 如果计算出的隐写区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
+/// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误
+/// * 如果计算出的隐写区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误
 pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> anyhow::Result<()> {
     // 一个 u64 只能存储 64 bits，需要 32 个像素字节 (32 * 2 bits)
     anyhow::ensure!(
@@ -58,26 +58,26 @@ pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> anyhow
     Ok(())
 }
 
-/// 从像素数组 (`pix`) 的指定区域恢复一个 64 位值。
+/// 从像素数组 (`pix`) 的指定区域恢复一个 64 位值
 ///
 /// 从每个像素字节的最低两位 (`& 0x3`) 中提取数据，并按照小端序 (Little-Endian)
-/// 方式组合成一个 64 位整数。
+/// 方式组合成一个 64 位整数
 ///
 /// # Arguments
 ///
-/// * `pix` - 包含图像像素数据的字节切片。
-/// * `dix` - 数据开始恢复的索引偏移量 (Data Index)，应跳过 BMP 头。
-/// * `size` - 用于恢复的字节数 (像素字节数)。
+/// * `pix` - 包含图像像素数据的字节切片
+/// * `dix` - 数据开始恢复的索引偏移量 (Data Index)
+/// * `size` - 用于恢复的字节数 (像素字节数)
 ///
 /// # Returns
 ///
-/// 成功时返回恢复的 `u64` 值。
+/// 成功时返回恢复的 `u64`
 ///
 /// # Errors
 ///
-/// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误。
-/// * 如果计算出的恢复区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
-/// * 如果 `size` 大于 32，由于 u64 只有 64 bits (32 bytes * 2 bits/byte)，将返回 `ErrorKind::InvalidInput` 错误。
+/// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误
+/// * 如果计算出的恢复区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误
+/// * 如果 `size` 大于 32，由于 u64 只有 64 bits (32 bytes * 2 bits/byte)，将返回 `ErrorKind::InvalidInput` 错误
 pub fn recover(pix: &[u8], dix: usize, size: usize) -> anyhow::Result<u64> {
     // 一个 u64 只能存储 64 bits，需要 32 个像素字节 (32 * 2 bits)
     anyhow::ensure!(
@@ -113,7 +113,7 @@ mod tests {
     use crate::constants::*;
     use rand::RngCore;
 
-    /// 一个完整的端到端测试，模拟隐藏和恢复过程。
+    /// 一个完整的端到端测试，模拟隐藏和恢复过程
     #[test]
     fn test_hide_and_recover_e2e() {
         // 1. 准备测试数据
@@ -261,13 +261,13 @@ mod tests {
         assert_eq!(text_len, recovered_len, "Recovered length should be 0.");
     }
 
-    /// 测试隐藏和恢复 u64 的最大值，以确保所有 64 位都被正确处理。
+    /// 测试隐藏和恢复 `u64` 的最大值，以确保所有 64 位都被正确处理
     #[test]
     fn test_hide_and_recover_u64_max() {
-        // 准备一个足够大的字节缓冲区。
+        // 准备一个足够大的字节缓冲区
         let mut picture = vec![0u8; 64];
 
-        // 定义要隐藏的值为 u64 的最大可能值。
+        // 定义要隐藏的值为 u64 的最大可能值
         let value_to_hide = u64::MAX;
 
         // 隐藏 u64::MAX

@@ -1,7 +1,7 @@
 //! # 命令处理逻辑模块
 //!
-//! 包含处理 `hide` 和 `recover` 子命令的高级业务逻辑。
-//! 本模块负责协调文件 I/O、调用核心隐写算法以及向用户报告结果。
+//! 包含处理 `hide` 和 `recover` 子命令的高级业务逻辑
+//! 本模块负责协调文件 I/O、调用核心隐写算法以及向用户报告结果
 
 use crate::cli::{HideArgs, RecoverArgs};
 use crate::constants::{BYTES_PER_CHAR, LENGTH_HIDING_BYTES};
@@ -11,23 +11,34 @@ use colored::Colorize;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb, Rgba};
 use std::fs;
 
-/// 处理 'Hide' 命令的执行逻辑。
+/// 处理 'Hide' 命令的执行逻辑
 ///
 /// 负责读取图像和文本文件、检查隐写空间是否足够、调用隐写核心函数隐藏长度和字符，
-/// 最后将结果写入目标图像文件。
+/// 最后将结果写入目标图像文件
 ///
 /// # Arguments
 ///
-/// * `args` - 包含输入/输出路径的 `HideArgs` 结构体。
+/// * `args` - 包含输入/输出路径的 `HideArgs` 结构体
 ///
 /// # Errors
 ///
 /// 如果发生以下任一情况，将返回错误：
-/// * 无法读取输入的图像或文本文件。
-/// * 图像文件没有足够的空间来隐藏文本。
-/// * 核心隐写函数 (`modify`) 在执行过程中失败。
-/// * 无法写入到目标图像文件。
+/// * 无法读取输入的图像或文本文件
+/// * 图像文件没有足够的空间来隐藏文本
+/// * 核心隐写函数 (`modify`) 在执行过程中失败
+/// * 无法写入到目标图像文件
 pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
+    // 如果用户没有提供输出路径，则动态生成一个默认路径
+    let dest_path = args.dest.unwrap_or_else(|| {
+        let original_path = &args.image;
+        let original_filename = original_path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("output");
+        let new_filename = format!("doctored_{}", original_filename);
+        original_path.with_file_name(new_filename)
+    });
+
     // 读取源图像
     let img = image::open(&args.image).with_context(|| {
         format!(
@@ -96,37 +107,48 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
             .map(DynamicImage::ImageRgb8)
     }?;
 
-    output_img.save(&args.dest).with_context(|| {
+    output_img.save(&dest_path).with_context(|| {
         format!(
             "Unable to write to target image file: {}",
-            args.dest.to_string_lossy().red().bold()
+            dest_path.to_string_lossy().red().bold()
         )
     })?;
 
     println!(
         "The text has been successfully hidden and saved: {}",
-        args.dest.to_string_lossy().green().bold()
+        dest_path.to_string_lossy().green().bold()
     );
 
     Ok(())
 }
 
-/// 处理 'Recover' 命令的执行逻辑。
+/// 处理 'Recover' 命令的执行逻辑
 ///
 /// 负责读取经过隐写的图像文件、调用恢复核心函数获取文本长度和每个字符，
-/// 最后将恢复的文本内容写入目标文本文件。
+/// 最后将恢复的文本内容写入目标文本文件
 ///
 /// # Arguments
 ///
-/// * `args` - 包含输入/输出路径的 `RecoverArgs` 结构体。
+/// * `args` - 包含输入/输出路径的 `RecoverArgs` 结构体
 ///
 /// # Errors
 ///
 /// 如果发生以下任一情况，将返回错误：
-/// * 无法读取输入的图像文件。
-/// * 核心恢复函数 (`recover`) 在执行过程中失败。
-/// * 无法写入到目标文本文件。
+/// * 无法读取输入的图像文件
+/// * 核心恢复函数 (`recover`) 在执行过程中失败
+/// * 无法写入到目标文本文件
 pub fn handle_recover(args: RecoverArgs) -> anyhow::Result<()> {
+    // 如果用户没有提供输出路径，则动态生成一个默认路径。
+    let text_path = args.text.unwrap_or_else(|| {
+        let original_path = &args.image;
+        let original_filename = original_path
+            .file_stem() // 获取不带扩展名的文件名
+            .and_then(|s| s.to_str())
+            .unwrap_or("output");
+        let new_filename = format!("recovered_{}.txt", original_filename);
+        original_path.with_file_name(new_filename)
+    });
+
     // 读取图像文件
     let img = image::open(&args.image).with_context(|| {
         format!(
@@ -165,16 +187,16 @@ pub fn handle_recover(args: RecoverArgs) -> anyhow::Result<()> {
         })
         .collect::<anyhow::Result<Vec<u8>>>()?;
 
-    fs::write(&args.text, text).with_context(|| {
+    fs::write(&text_path, text).with_context(|| {
         format!(
             "Unable to write to target text file: {}",
-            args.text.to_string_lossy().red().bold()
+            text_path.to_string_lossy().red().bold()
         )
     })?;
 
     println!(
         "The text has been successfully recovered and saved: {}",
-        args.text.to_string_lossy().green().bold()
+        text_path.to_string_lossy().green().bold()
     );
 
     Ok(())

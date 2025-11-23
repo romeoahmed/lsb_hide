@@ -42,7 +42,7 @@ fn test_handle_hide_and_recover_integration() -> anyhow::Result<()> {
     let hide_args = HideArgs {
         image: original_image_path.clone(),
         text: source_text_path.clone(),
-        dest: hidden_image_path.clone(),
+        dest: Some(hidden_image_path.clone()),
     };
     handle_hide(hide_args)?;
     assert!(
@@ -53,7 +53,7 @@ fn test_handle_hide_and_recover_integration() -> anyhow::Result<()> {
     // 3. 测试 handle_recover
     let recover_args = RecoverArgs {
         image: hidden_image_path.clone(),
-        text: recovered_text_path.clone(),
+        text: Some(recovered_text_path.clone()),
     };
     handle_recover(recover_args)?;
     assert!(
@@ -66,6 +66,59 @@ fn test_handle_hide_and_recover_integration() -> anyhow::Result<()> {
     assert_eq!(
         original_text, recovered_text,
         "Recovered text must match the original."
+    );
+
+    Ok(())
+}
+
+/// 验证当用户不提供输出路径时，是否能正确生成默认路径并完成操作
+#[test]
+fn test_handle_hide_and_recover_with_defaults() -> anyhow::Result<()> {
+    // 1. 准备环境
+    let dir = tempdir()?;
+    let original_image_path = dir.path().join("original.png");
+    let source_text_path = dir.path().join("source.txt");
+
+    create_test_image(&original_image_path, 100, 100);
+    let original_text = "Testing default path generation. 测试默认路径生成。";
+    fs::write(&source_text_path, original_text)?;
+
+    // 2. 测试 handle_hide，不提供 dest 路径
+    let hide_args = HideArgs {
+        image: original_image_path.clone(),
+        text: source_text_path.clone(),
+        dest: None, // 关键：测试 None 的情况
+    };
+    handle_hide(hide_args)?;
+
+    // 验证默认的隐藏图像文件是否已创建
+    let expected_hidden_path = dir.path().join("doctored_original.png");
+    assert!(
+        expected_hidden_path.exists(),
+        "Default hidden image should be created at: {:?}",
+        expected_hidden_path
+    );
+
+    // 3. 测试 handle_recover，不提供 text 输出路径
+    let recover_args = RecoverArgs {
+        image: expected_hidden_path, // 使用上一步生成的默认文件
+        text: None,                  // 关键：测试 None 的情况
+    };
+    handle_recover(recover_args)?;
+
+    // 验证默认的恢复文本文件是否已创建
+    let expected_recovered_path = dir.path().join("recovered_doctored_original.txt");
+    assert!(
+        expected_recovered_path.exists(),
+        "Default recovered text file should be created at: {:?}",
+        expected_recovered_path
+    );
+
+    // 4. 验证结果
+    let recovered_text = fs::read_to_string(&expected_recovered_path)?;
+    assert_eq!(
+        original_text, recovered_text,
+        "Recovered text from default file must match the original."
     );
 
     Ok(())
@@ -90,7 +143,7 @@ fn test_handle_hide_not_enough_space() {
     let hide_args = HideArgs {
         image: image_path,
         text: text_path,
-        dest: dest_path,
+        dest: Some(dest_path),
     };
     let result = handle_hide(hide_args);
 
