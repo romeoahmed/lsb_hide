@@ -4,7 +4,7 @@
 //! 实现基于 LSB (最低有效位) 的数据隐藏和恢复。
 
 use crate::constants::{DATA_MASK, LSB_MASK};
-use std::io::{self, ErrorKind};
+use anyhow::Context;
 
 /// 隐藏一个 64 位值 (`value`) 到像素数组 (`pix`) 的指定区域。
 ///
@@ -23,22 +23,26 @@ use std::io::{self, ErrorKind};
 ///
 /// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误。
 /// * 如果计算出的隐写区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
-pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> Result<(), io::Error> {
+pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> anyhow::Result<()> {
     // 计算恢复区域的结束索引
-    let end = dix.checked_add(size).ok_or_else(|| {
-        io::Error::new(
-            ErrorKind::InvalidInput,
-            "Integer overflow when calculating end index.",
-        )
-    })?;
+    let end = dix
+        .checked_add(size)
+        .with_context(|| {
+            format!(
+                "Integer overflow when calculating end index.\ndix: {}, size: {}",
+                dix, size
+            )
+        })?;
 
     // 获取用于隐写的像素子切片
-    let sub_pix = pix.get_mut(dix..end).ok_or_else(|| {
-        io::Error::new(
-            ErrorKind::InvalidInput,
-            "Steganography region out of bounds.",
-        )
-    })?;
+    let sub_pix = pix
+        .get_mut(dix..end)
+        .with_context(|| {
+            format!(
+                "Steganography region out of bounds.\n dix: {}, end: {}",
+                dix, end
+            )
+        })?;
 
     // 遍历每个像素字节，将 value 的 2 bits 写入其 LSB
     for byte in sub_pix.iter_mut() {
@@ -72,27 +76,32 @@ pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> Result
 /// * 如果 `dix + size` 的计算导致整数溢出，将返回 `ErrorKind::InvalidInput` 错误。
 /// * 如果计算出的恢复区域 `dix..end` 超出了 `pix` 的边界，将返回 `ErrorKind::InvalidInput` 错误。
 /// * 如果 `size` 大于 32，由于 u64 只有 64 bits (32 bytes * 2 bits/byte)，将返回 `ErrorKind::InvalidInput` 错误。
-pub fn recover(pix: &[u8], dix: usize, size: usize) -> Result<u64, io::Error> {
+pub fn recover(pix: &[u8], dix: usize, size: usize) -> anyhow::Result<u64> {
+    // 一个 u64 只能存储 64 bits，需要 32 个像素字节 (32 * 2 bits)
+    anyhow::ensure!(
+        size <= 32,
+        "Extraction size limit exceeded (max 32 bytes for a u64 value)."
+    );
+
     // 计算恢复区域的结束索引
-    let end = dix.checked_add(size).ok_or_else(|| {
-        io::Error::new(
-            ErrorKind::InvalidInput,
-            "Integer overflow when calculating end index.",
-        )
-    })?;
+    let end = dix
+        .checked_add(size)
+        .with_context(|| {
+            format!(
+                "Integer overflow when calculating end index.\ndix: {}, size: {}",
+                dix, size
+            )
+        })?;
 
     // 获取用于恢复的像素子切片
     let sub_pix = pix
         .get(dix..end)
-        .ok_or_else(|| io::Error::new(ErrorKind::InvalidInput, "Extraction area out of bounds."))?;
-
-    // 一个 u64 只能存储 64 bits，需要 32 个像素字节 (32 * 2 bits)
-    if size > 32 {
-        return Err(io::Error::new(
-            ErrorKind::InvalidInput,
-            "Extraction size limit exceeded (max 32 bytes for a u64 value).",
-        ));
-    }
+        .with_context(|| {
+            format!(
+                "Extraction area out of bounds.\ndix: {}, end: {}",
+                dix, end
+            )
+        })?;
 
     // 从每个像素字节的 LSB 中提取 2 bits，并将其组合成一个 u64 值
     let result = sub_pix.iter().enumerate().fold(0u64, |acc, (i, &byte)| {

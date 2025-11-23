@@ -6,7 +6,7 @@
 use crate::cli::{HideArgs, RecoverArgs};
 use crate::constants::{BYTES_PER_CHAR, LENGTH_HIDING_BYTES};
 use crate::steganography::{modify, recover};
-use anyhow::{Context, Result};
+use anyhow::Context;
 use colored::Colorize;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb, Rgba};
 use std::fs;
@@ -27,7 +27,7 @@ use std::fs;
 /// * 图像文件没有足够的空间来隐藏文本。
 /// * 核心隐写函数 (`modify`) 在执行过程中失败。
 /// * 无法写入到目标图像文件。
-pub fn handle_hide(args: HideArgs) -> Result<()> {
+pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
     // 读取源图像
     let img = image::open(&args.image).with_context(|| {
         format!(
@@ -126,7 +126,7 @@ pub fn handle_hide(args: HideArgs) -> Result<()> {
 /// * 无法读取输入的图像文件。
 /// * 核心恢复函数 (`recover`) 在执行过程中失败。
 /// * 无法写入到目标文本文件。
-pub fn handle_recover(args: RecoverArgs) -> Result<()> {
+pub fn handle_recover(args: RecoverArgs) -> anyhow::Result<()> {
     // 读取图像文件
     let img = image::open(&args.image).with_context(|| {
         format!(
@@ -163,7 +163,7 @@ pub fn handle_recover(args: RecoverArgs) -> Result<()> {
                     )
                 })
         })
-        .collect::<Result<Vec<u8>>>()?;
+        .collect::<anyhow::Result<Vec<u8>>>()?;
 
     fs::write(&args.text, text).with_context(|| {
         format!(
