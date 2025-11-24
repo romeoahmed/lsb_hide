@@ -4,8 +4,8 @@
 
 /// 用于存储隐藏文本长度的字节数
 ///
-/// 使用 8 个字节（64 位）来存储长度，允许隐藏非常大的文本文件
-pub const LENGTH_HIDING_BYTES: usize = 8;
+/// 使用 32 个像素字节来存储长度，允许隐藏非常大的文本文件
+pub const LENGTH_HIDING_BYTES: usize = 32;
 
 /// 用于存储单个字符（1 字节）所需的像素字节数
 ///
