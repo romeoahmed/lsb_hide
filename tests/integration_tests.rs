@@ -6,11 +6,11 @@ use lsb_hide::{
 };
 use rand::RngCore;
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use tempfile::tempdir;
 
 /// 一个辅助函数，用于创建一个带有随机像素的测试图像
-fn create_test_image(path: &PathBuf, width: u32, height: u32) {
+fn create_test_image(path: &Path, width: u32, height: u32) {
     let mut img_buf = ImageBuffer::new(width, height);
     let mut raw_pixels = vec![0u8; (width * height * 4) as usize];
     rand::rng().fill_bytes(&mut raw_pixels);

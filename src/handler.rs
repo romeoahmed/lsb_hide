@@ -83,9 +83,12 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
 
     // 隐藏文本长度
     let text_len = text.len() as u64;
-    modify(text_len, &mut picture_bytes, 0, LENGTH_HIDING_BYTES).context(
-        "Failed to hide the message length in the image. \nThe image file may be corrupt or write-protected."
-    )?;
+    modify(text_len, &mut picture_bytes, 0, LENGTH_HIDING_BYTES).with_context( || {
+        format!(
+            "Failed to hide the text length: {}",
+            text_len.to_string().red().bold()
+        )
+    })?;
 
     // 逐字节隐藏文本内容
     text.iter().enumerate().try_for_each(|(i, &char_byte)| {
@@ -97,7 +100,7 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
                     format!("byte value {}", char_byte)
                 });
             format!(
-                "Failed to hide character {} (at index {}). \nThe image might not have enough capacity or is corrupted.",
+                "Failed to hide character {} (at index {}).",
                 char_info.red().bold(),
                 i.to_string().green()
             )
@@ -182,7 +185,7 @@ pub fn handle_recover(args: RecoverArgs) -> anyhow::Result<()> {
     // 恢复隐藏文本的长度
     let text_len = recover(&picture_bytes, 0, LENGTH_HIDING_BYTES).with_context(|| {
         format!(
-            "Failed to recover message length from '{}'. \nThe image may not contain a hidden message or is corrupted.",
+            "Failed to recover text length from image file: {}",
             args.image.to_string_lossy().red().bold()
         )
     })?;

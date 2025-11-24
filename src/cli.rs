@@ -40,8 +40,13 @@ pub struct HideArgs {
     pub text: PathBuf,
 
     /// 隐写完成后，保存结果图像的输出路径
-    /// [可选] 如果未提供，将默认保存到 "doctored_{原始文件名}"
-    #[arg(short, long)]
+    /// 
+    /// \[可选\] 如果未提供，将默认保存到 "doctored_{原始文件名}"
+    #[arg(
+        short,
+        long,
+        long_help = "隐写完成后，保存结果图像的输出路径\n[可选] 如果未提供，将默认保存到 \"doctored_{原始文件名}\""
+    )]
     pub dest: Option<PathBuf>,
 
     /// 强制写入到输出路径
@@ -57,8 +62,13 @@ pub struct RecoverArgs {
     pub image: PathBuf,
 
     /// 恢复文本后，保存文本内容的输出路径
-    /// [可选] 如果未提供，将默认保存到 "recovered_{原始文件名}.txt"
-    #[arg(short, long)]
+    /// 
+    /// \[可选\] 如果未提供，将默认保存到 "recovered_{原始文件名}.txt"
+    #[arg(
+        short,
+        long,
+        long_help = "恢复文本后，保存文本内容的输出路径\n[可选] 如果未提供，将默认保存到 \"recovered_{原始文件名}.txt\""
+    )]
     pub text: Option<PathBuf>,
 
     /// 强制写入到输出路径
