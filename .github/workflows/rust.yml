@@ -18,7 +18,7 @@ jobs:
   test_and_build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install latest stable Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build (Release mode)
@@ -50,7 +50,7 @@ jobs:
             asset_name: windows-x64
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
