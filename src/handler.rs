@@ -83,7 +83,7 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
 
     // 隐藏文本长度
     let text_len = text.len() as u64;
-    modify(text_len, &mut picture_bytes, 0, LENGTH_HIDING_BYTES).with_context( || {
+    modify(text_len, &mut picture_bytes, 0, LENGTH_HIDING_BYTES).with_context(|| {
         format!(
             "Failed to hide the text length: {}",
             text_len.to_string().red().bold()
@@ -96,9 +96,7 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
         modify(char_byte as u64, &mut picture_bytes, offset, BYTES_PER_CHAR).with_context(|| {
             let char_info = std::str::from_utf8(&[char_byte])
                 .map(ToString::to_string)
-                .unwrap_or_else(|_| {
-                    format!("byte value {}", char_byte)
-                });
+                .unwrap_or_else(|_| format!("byte value {}", char_byte));
             format!(
                 "Failed to hide character {} (at index {}).",
                 char_info.red().bold(),

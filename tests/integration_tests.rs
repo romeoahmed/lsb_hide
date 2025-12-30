@@ -56,7 +56,7 @@ fn test_handle_hide_and_recover_integration() -> anyhow::Result<()> {
     let recover_args = RecoverArgs {
         image: hidden_image_path.clone(),
         text: Some(recovered_text_path.clone()),
-        force: false
+        force: false,
     };
     handle_recover(recover_args)?;
     assert!(
@@ -91,7 +91,7 @@ fn test_handle_hide_and_recover_with_defaults() -> anyhow::Result<()> {
         image: original_image_path.clone(),
         text: source_text_path.clone(),
         dest: None, // 关键：测试 None 的情况
-        force: false
+        force: false,
     };
     handle_hide(hide_args)?;
 
@@ -107,7 +107,7 @@ fn test_handle_hide_and_recover_with_defaults() -> anyhow::Result<()> {
     let recover_args = RecoverArgs {
         image: expected_hidden_path, // 使用上一步生成的默认文件
         text: None,                  // 关键：测试 None 的情况
-        force: false
+        force: false,
     };
     handle_recover(recover_args)?;
 
@@ -156,7 +156,10 @@ fn test_overwrite_protection_and_force_flag() -> anyhow::Result<()> {
 
     // 执行并断言操作会失败
     let result = handle_hide(hide_args_no_force);
-    assert!(result.is_err(), "Execution should fail without --force when file exists.");
+    assert!(
+        result.is_err(),
+        "Execution should fail without --force when file exists."
+    );
     if let Err(e) = result {
         assert!(e.to_string().contains("Output file already exists"));
     }
@@ -172,7 +175,10 @@ fn test_overwrite_protection_and_force_flag() -> anyhow::Result<()> {
 
     // 执行并断言操作会成功
     let result = handle_hide(hide_args_with_force);
-    assert!(result.is_ok(), "Execution should succeed with --force when file exists.");
+    assert!(
+        result.is_ok(),
+        "Execution should succeed with --force when file exists."
+    );
 
     // 验证文件确实被覆盖（内容不再是 "this is a dummy file..."）
     let dummy_content = fs::read(&dest_path)?;
@@ -201,7 +207,7 @@ fn test_handle_hide_not_enough_space() -> anyhow::Result<()> {
         image: image_path,
         text: text_path,
         dest: Some(dest_path),
-        force: false
+        force: false,
     };
     let result = handle_hide(hide_args);
 
