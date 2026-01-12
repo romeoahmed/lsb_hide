@@ -2,12 +2,12 @@
   "nodes": {
     "nixpkgs": {
       "locked": {
-        "lastModified": 1768028080,
-        "narHash": "sha256-50aDK+8eLvsLK39TzQhKNq50/HcXyP4hyxOYoPoVxjo=",
-        "rev": "d03088749a110d52a4739348f39a63f84bb0be14",
-        "revCount": 905522,
+        "lastModified": 1768242861,
+        "narHash": "sha256-F4IIxa5xDHjtrmMcayM8lHctUq1oGltfBQu2+oqDWP4=",
+        "rev": "1327e798cb055f96f92685df444e9a2c326ab5ed",
+        "revCount": 905687,
         "type": "tarball",
-        "url": "https://api.flakehub.com/f/pinned/NixOS/nixpkgs/0.2511.905522%2Brev-d03088749a110d52a4739348f39a63f84bb0be14/019bae23-3da0-759f-a5ad-f5a7a6122394/source.tar.gz?rev=d03088749a110d52a4739348f39a63f84bb0be14&revCount=905522"
+        "url": "https://api.flakehub.com/f/pinned/NixOS/nixpkgs/0.2511.905687%2Brev-1327e798cb055f96f92685df444e9a2c326ab5ed/019bb874-9b65-73ec-9dd5-8f14598e59e0/source.tar.gz?rev=1327e798cb055f96f92685df444e9a2c326ab5ed&revCount=905687"
       },
       "original": {
         "type": "tarball",
@@ -41,12 +41,12 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1768186348,
-        "narHash": "sha256-nkpIe3zkpeoFuOl8xBpexulECsHLQ9Ljg1gW3bPCjSI=",
-        "rev": "af69e497567a5945a64057717bc9b17c8478097e",
-        "revCount": 2039,
+        "lastModified": 1768359079,
+        "narHash": "sha256-a016mOfKconYrYo3fZLN6c2cnmqYYd44g2bUrBZAsQc=",
+        "rev": "0357d1826057686637e41147545402cbbda420ce",
+        "revCount": 2041,
         "type": "tarball",
-        "url": "https://api.flakehub.com/f/pinned/oxalica/rust-overlay/0.1.2039%2Brev-af69e497567a5945a64057717bc9b17c8478097e/019bb020-e82b-7c47-9ee7-9b855523eb59/source.tar.gz?rev=af69e497567a5945a64057717bc9b17c8478097e&revCount=2039"
+        "url": "https://api.flakehub.com/f/pinned/oxalica/rust-overlay/0.1.2041%2Brev-0357d1826057686637e41147545402cbbda420ce/019bba6c-a495-7c19-934d-5e4af25465b9/source.tar.gz?rev=0357d1826057686637e41147545402cbbda420ce&revCount=2041"
       },
       "original": {
         "type": "tarball",
