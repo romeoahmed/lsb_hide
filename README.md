@@ -1,6 +1,6 @@
 # lsb_hide
 
-[![Rust CI & Release](https://github.com/romeoahmed/lsb_hide/actions/workflows/rust.yml/badge.svg)](https://github.com/romeoahmed/lsb_hide/actions/workflows/rust.yml)
+[![Rust CI & Release](https://github.com/romeoahmed/lsb_hide/actions/workflows/rust.yaml/badge.svg)](https://github.com/romeoahmed/lsb_hide/actions/workflows/rust.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 一款基于 LSB (最低有效位) 隐写术的命令行工具，用于在**无损格式图像 (如 PNG, BMP)** 中安全地隐藏或恢复文本文件。
