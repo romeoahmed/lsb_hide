@@ -4,7 +4,7 @@ use lsb_hide::{
     cli::{HideArgs, RecoverArgs},
     handler::{handle_hide, handle_recover},
 };
-use rand::RngCore;
+use rand::Rng;
 use std::fs;
 use std::path::Path;
 use tempfile::tempdir;

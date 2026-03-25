@@ -36,7 +36,7 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
             .file_name()
             .and_then(|s| s.to_str())
             .unwrap_or("output");
-        let new_filename = format!("doctored_{}", original_filename);
+        let new_filename = format!("doctored_{original_filename}");
         original_path.with_file_name(new_filename)
     });
 
@@ -93,10 +93,15 @@ pub fn handle_hide(args: HideArgs) -> anyhow::Result<()> {
     // 逐字节隐藏文本内容
     text.iter().enumerate().try_for_each(|(i, &char_byte)| {
         let offset = LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
-        modify(char_byte as u64, &mut picture_bytes, offset, BYTES_PER_CHAR).with_context(|| {
+        modify(
+            u64::from(char_byte),
+            &mut picture_bytes,
+            offset,
+            BYTES_PER_CHAR,
+        )
+        .with_context(|| {
             let char_info = std::str::from_utf8(&[char_byte])
-                .map(ToString::to_string)
-                .unwrap_or_else(|_| format!("byte value {}", char_byte));
+                .map_or_else(|_| format!("byte value {char_byte}"), ToString::to_string);
             format!(
                 "Failed to hide character {} (at index {}).",
                 char_info.red().bold(),
@@ -155,7 +160,7 @@ pub fn handle_recover(args: RecoverArgs) -> anyhow::Result<()> {
             .file_stem() // 获取不带扩展名的文件名
             .and_then(|s| s.to_str())
             .unwrap_or("output");
-        let new_filename = format!("recovered_{}.txt", original_filename);
+        let new_filename = format!("recovered_{original_filename}.txt");
         original_path.with_file_name(new_filename)
     });
 
@@ -189,20 +194,22 @@ pub fn handle_recover(args: RecoverArgs) -> anyhow::Result<()> {
     })?;
 
     // 根据恢复的长度，逐字节恢复文本内容
-    let text: Vec<u8> = (0..text_len as usize)
-        .map(|i| {
-            let offset = LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
-            recover(&picture_bytes, offset, BYTES_PER_CHAR)
-                .map(|value| value as u8)
-                .with_context(|| {
-                    format!(
-                        "Failed to recover character at index {}. \nThe data at offset {} appears to be corrupted or invalid.",
-                        i.to_string().red().bold(),
-                        offset.to_string().red().bold()
-                    )
-                })
-        })
-        .collect::<anyhow::Result<Vec<u8>>>()?;
+    let text: Vec<u8> = (0..usize::try_from(text_len).context("Failed to convert text length to usize")?)
+    .map(|i| {
+        let offset = LENGTH_HIDING_BYTES + BYTES_PER_CHAR * i;
+        recover(&picture_bytes, offset, BYTES_PER_CHAR)
+            .with_context(|| {
+                format!(
+                    "Failed to recover character at index {}. \nThe data at offset {} appears to be corrupted or invalid.",
+                    i.to_string().red().bold(),
+                    offset.to_string().red().bold()
+                )
+            })
+            .and_then(|value| {
+                u8::try_from(value).with_context(|| format!("Recovered value {value} at index {i} cannot be converted to u8"))
+            })
+    })
+    .collect::<anyhow::Result<Vec<u8>>>()?;
 
     fs::write(&text_path, text).with_context(|| {
         format!(

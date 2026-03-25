@@ -32,24 +32,20 @@ pub fn modify(mut value: u64, pix: &mut [u8], dix: usize, size: usize) -> anyhow
 
     // 计算恢复区域的结束索引
     let end = dix.checked_add(size).with_context(|| {
-        format!(
-            "Integer overflow when calculating end index.\ndix: {}, size: {}",
-            dix, size
-        )
+        format!("Integer overflow when calculating end index.\ndix: {dix}, size: {size}")
     })?;
 
     // 获取用于隐写的像素子切片
-    let sub_pix = pix.get_mut(dix..end).with_context(|| {
-        format!(
-            "Steganography region out of bounds.\n dix: {}, end: {}",
-            dix, end
-        )
-    })?;
+    let sub_pix = pix
+        .get_mut(dix..end)
+        .with_context(|| format!("Steganography region out of bounds.\n dix: {dix}, end: {end}"))?;
 
     // 遍历每个像素字节，将 value 的 2 bits 写入其 LSB
     for byte in sub_pix.iter_mut() {
         // 清除像素字节的最低两位，然后或上 value 的最低两位
-        *byte = ((value & (LSB_MASK as u64)) as u8) | (*byte & DATA_MASK);
+        *byte = u8::try_from(value & u64::from(LSB_MASK))
+            .with_context(|| format!("Failed to convert value {value} to u8"))?
+            | (*byte & DATA_MASK);
 
         // value 右移两位，为下一次迭代做准备
         value >>= 2;
@@ -87,21 +83,18 @@ pub fn recover(pix: &[u8], dix: usize, size: usize) -> anyhow::Result<u64> {
 
     // 计算恢复区域的结束索引
     let end = dix.checked_add(size).with_context(|| {
-        format!(
-            "Integer overflow when calculating end index.\ndix: {}, size: {}",
-            dix, size
-        )
+        format!("Integer overflow when calculating end index.\ndix: {dix}, size: {size}")
     })?;
 
     // 获取用于恢复的像素子切片
     let sub_pix = pix
         .get(dix..end)
-        .with_context(|| format!("Extraction area out of bounds.\ndix: {}, end: {}", dix, end))?;
+        .with_context(|| format!("Extraction area out of bounds.\ndix: {dix}, end: {end}"))?;
 
     // 从每个像素字节的 LSB 中提取 2 bits，并将其组合成一个 u64 值
     let result = sub_pix.iter().enumerate().fold(0u64, |acc, (i, &byte)| {
         // 提取最低两位，并左移到正确的位置，然后累加到结果中
-        acc | ((byte & LSB_MASK) as u64) << (i * 2)
+        acc | u64::from(byte & LSB_MASK) << (i * 2)
     });
 
     Ok(result)
@@ -111,7 +104,7 @@ pub fn recover(pix: &[u8], dix: usize, size: usize) -> anyhow::Result<u64> {
 mod tests {
     use super::*;
     use crate::constants::*;
-    use rand::RngCore;
+    use rand::Rng;
 
     /// 一个完整的端到端测试，模拟隐藏和恢复过程
     #[test]

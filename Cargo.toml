@@ -1,7 +1,7 @@
 [package]
 authors = ["Romeo Ahmed <ahmedorqwn@gmail.com>"]
 name = "lsb_hide"
-version = "4.0.1"
+version = "4.0.2"
 edition = "2024"
 description = "LSB Steganography Tool for lossless images like PNG and BMP"
 license = "MIT"
@@ -9,11 +9,20 @@ readme = "README.md"
 repository = "https://github.com/romeoahmed/lsb_hide"
 
 [dependencies]
-anyhow = "1.0.100"
-clap = { version = "4.5.53", features = ["derive"] }
-colored = "3.0.0"
-image = { version = "0.25.9", default-features = false, features = ["bmp", "png", "tiff", "webp", "qoi"] }
+anyhow = "1.0.102"
+clap = { version = "4.6.0", features = ["derive"] }
+colored = "3.1.1"
+image = { version = "0.25.10", default-features = false, features = ["bmp", "png", "tiff", "webp", "qoi"] }
 
 [dev-dependencies]
-rand = "0.9.2"
+rand = "0.10"
 tempfile = "3.23.0"
+
+[profile.release]
+lto = "thin"
+strip = "symbols"
+panic = "abort"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
